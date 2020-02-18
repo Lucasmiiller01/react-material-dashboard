@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link as RouterLink, withRouter } from 'react-router-dom';
 import PropTypes from 'prop-types';
-import validate from 'validate.js';
 import { makeStyles } from '@material-ui/styles';
 import {
   Grid,
@@ -12,24 +11,11 @@ import {
   Typography
 } from '@material-ui/core';
 import ArrowBackIcon from '@material-ui/icons/ArrowBack';
+import { useDispatch, useSelector } from 'react-redux';
 
 import { Facebook as FacebookIcon, Google as GoogleIcon } from 'icons';
-
-const schema = {
-  email: {
-    presence: { allowEmpty: false, message: 'is required' },
-    email: true,
-    length: {
-      maximum: 64
-    }
-  },
-  password: {
-    presence: { allowEmpty: false, message: 'is required' },
-    length: {
-      maximum: 128
-    }
-  }
-};
+import { Login } from '../../store/ducks/auth';
+import { useForm, Controller } from 'react-hook-form';
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -127,56 +113,17 @@ const useStyles = makeStyles(theme => ({
 
 const SignIn = props => {
   const { history } = props;
+  const { handleSubmit, control } = useForm();
+  const dispatch = useDispatch();
+  const formLogin = useSelector(state => state.form.LOGIN);
+  const { submitting, submitFailed, submitErrors } = formLogin ? formLogin : {};
+  console.log(submitting, submitFailed, submitErrors);
 
   const classes = useStyles();
-
-  const [formState, setFormState] = useState({
-    isValid: false,
-    values: {},
-    touched: {},
-    errors: {}
-  });
-
-  useEffect(() => {
-    const errors = validate(formState.values, schema);
-
-    setFormState(formState => ({
-      ...formState,
-      isValid: errors ? false : true,
-      errors: errors || {}
-    }));
-  }, [formState.values]);
 
   const handleBack = () => {
     history.goBack();
   };
-
-  const handleChange = event => {
-    event.persist();
-
-    setFormState(formState => ({
-      ...formState,
-      values: {
-        ...formState.values,
-        [event.target.name]:
-          event.target.type === 'checkbox'
-            ? event.target.checked
-            : event.target.value
-      },
-      touched: {
-        ...formState.touched,
-        [event.target.name]: true
-      }
-    }));
-  };
-
-  const handleSignIn = event => {
-    event.preventDefault();
-    history.push('/');
-  };
-
-  const hasError = field =>
-    formState.touched[field] && formState.errors[field] ? true : false;
 
   return (
     <div className={classes.root}>
@@ -230,7 +177,7 @@ const SignIn = props => {
             <div className={classes.contentBody}>
               <form
                 className={classes.form}
-                onSubmit={handleSignIn}
+                onSubmit={handleSubmit(payload => dispatch(Login(payload)))}
               >
                 <Typography
                   className={classes.title}
@@ -252,7 +199,7 @@ const SignIn = props => {
                   <Grid item>
                     <Button
                       color="primary"
-                      onClick={handleSignIn}
+                      // onClick={handleSignIn}
                       size="large"
                       variant="contained"
                     >
@@ -262,7 +209,7 @@ const SignIn = props => {
                   </Grid>
                   <Grid item>
                     <Button
-                      onClick={handleSignIn}
+                      // onClick={handleSignIn}
                       size="large"
                       variant="contained"
                     >
@@ -279,38 +226,51 @@ const SignIn = props => {
                 >
                   or login with email address
                 </Typography>
-                <TextField
-                  className={classes.textField}
-                  error={hasError('email')}
-                  fullWidth
-                  helperText={
-                    hasError('email') ? formState.errors.email[0] : null
+                <Controller
+                  as={
+                    <TextField
+                      className={classes.textField}
+                      error={submitFailed}
+                      fullWidth
+                      helperText={
+                        submitErrors && submitErrors.email
+                          ? submitErrors.email
+                          : ''
+                      }
+                      label="Email address"
+                      name="email"
+                      type="text"
+                      variant="outlined"
+                    />
                   }
-                  label="Email address"
+                  control={control}
                   name="email"
-                  onChange={handleChange}
-                  type="text"
-                  value={formState.values.email || ''}
-                  variant="outlined"
                 />
-                <TextField
-                  className={classes.textField}
-                  error={hasError('password')}
-                  fullWidth
-                  helperText={
-                    hasError('password') ? formState.errors.password[0] : null
+                <Controller
+                  as={
+                    <TextField
+                      className={classes.textField}
+                      error={submitFailed}
+                      fullWidth
+                      helperText={
+                        submitErrors && submitErrors.password
+                          ? submitErrors.password
+                          : ''
+                      }
+                      label="Password"
+                      name="password"
+                      type="password"
+                      variant="outlined"
+                    />
                   }
-                  label="Password"
+                  control={control}
                   name="password"
-                  onChange={handleChange}
-                  type="password"
-                  value={formState.values.password || ''}
-                  variant="outlined"
                 />
+
                 <Button
                   className={classes.signInButton}
                   color="primary"
-                  disabled={!formState.isValid}
+                  disabled={submitting}
                   fullWidth
                   size="large"
                   type="submit"
